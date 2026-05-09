@@ -4,7 +4,12 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
-// DTO que recibe los datos para registrar un nuevo usuario
+/**
+ * DTO de entrada para el endpoint POST /api/auth/registro.
+ *
+ * <p>{@code rolNombre} determina si el usuario se registra como TUTOR (por defecto)
+ * o DELEGADO. {@code aceptaTerminos} es requerido por la Ley 19.628 de protección de datos.
+ */
 @Data
 public class RegistroRequestDTO {
 

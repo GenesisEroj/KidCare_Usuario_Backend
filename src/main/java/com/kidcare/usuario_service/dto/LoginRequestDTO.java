@@ -4,7 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
-// DTO que recibe los datos para iniciar sesión
+/** DTO de entrada para el endpoint POST /api/auth/login. */
 @Data
 public class LoginRequestDTO {
 

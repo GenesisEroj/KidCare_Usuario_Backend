@@ -7,7 +7,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-// Controlador que expone los endpoints de autenticación
+/**
+ * Controlador REST para autenticación y gestión de cuentas de usuario.
+ *
+ * <p>Todos los endpoints son públicos (no requieren JWT) y están declarados
+ * en {@link com.kidcare.usuario_service.security.SecurityConfig} como {@code permitAll}.
+ *
+ * <p>Endpoints disponibles:
+ * <ul>
+ *   <li>POST /api/auth/registro — crea nueva cuenta (TUTOR o DELEGADO)</li>
+ *   <li>POST /api/auth/login — autentica y retorna JWT</li>
+ *   <li>POST /api/auth/recuperar — envía token de recuperación por correo</li>
+ *   <li>POST /api/auth/restablecer — establece nueva contraseña con el token</li>
+ * </ul>
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -15,15 +28,63 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
-    // POST /api/auth/registro — registra un nuevo tutor
+    /**
+     * Registra un nuevo usuario y retorna un JWT listo para usar.
+     *
+     * @param dto nombre completo, email, contraseña, aceptaTerminos, rolNombre (TUTOR|DELEGADO)
+     * @return 200 con token JWT, email y rol — 400 si el email ya existe
+     */
     @PostMapping("/registro")
     public ResponseEntity<AuthResponseDTO> registrar(@Valid @RequestBody RegistroRequestDTO dto) {
         return ResponseEntity.ok(authService.registrar(dto));
     }
 
-    // POST /api/auth/login — inicia sesión y retorna token JWT
+    /**
+     * Autentica al usuario con email y contraseña.
+     *
+     * @param dto email y contraseña
+     * @return 200 con token JWT, email y rol — 400 si las credenciales son incorrectas
+     */
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO dto) {
         return ResponseEntity.ok(authService.login(dto));
+    }
+
+    /**
+     * Solicita recuperación de contraseña.
+     * Genera un token UUID y lo envía al correo del usuario vía Gmail SMTP.
+     *
+     * @param dto correo electrónico registrado en el sistema
+     * @return 200 con mensaje de confirmación — 400 si el correo no existe
+     */
+    @PostMapping("/recuperar")
+    public ResponseEntity<String> recuperar(@Valid @RequestBody RecuperarPasswordRequestDTO dto) {
+        authService.solicitarRecuperacion(dto);
+        return ResponseEntity.ok("Correo de recuperación enviado. Revisa tu bandeja de entrada.");
+    }
+
+    /**
+     * Restablece la contraseña usando el token recibido por correo.
+     * El token se invalida después de usarse para evitar reutilización.
+     *
+     * @param dto token de recuperación y nueva contraseña
+     * @return 200 con mensaje de confirmación — 400 si el token es inválido o expiró
+     */
+    @PostMapping("/restablecer")
+    public ResponseEntity<String> restablecer(@Valid @RequestBody NuevaPasswordRequestDTO dto) {
+        authService.restablecerPassword(dto);
+        return ResponseEntity.ok("Contraseña restablecida correctamente.");
+    }
+
+    /**
+     * Captura excepciones de negocio y las convierte en respuestas 400 Bad Request.
+     * Evita que errores como "correo no registrado" expongan un 500 al cliente.
+     *
+     * @param e excepción lanzada por {@link AuthService}
+     * @return 400 con el mensaje de error descriptivo
+     */
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<String> handleError(RuntimeException e) {
+        return ResponseEntity.badRequest().body(e.getMessage());
     }
 }

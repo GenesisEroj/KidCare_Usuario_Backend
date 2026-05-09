@@ -3,7 +3,13 @@ package com.kidcare.usuario_service.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
-// Entidad que representa los roles del sistema (ADMIN, TUTOR, DELEGADO)
+/**
+ * Entidad JPA que representa un rol del sistema.
+ *
+ * <p>Los tres roles disponibles (ADMIN, TUTOR, DELEGADO) se inicializan mediante
+ * {@code INSERT IGNORE} en {@code data.sql} al arrancar la aplicación.
+ * Spring Security los prefija con {@code ROLE_} al evaluarlos con {@code hasRole()}.
+ */
 @Data
 @Entity
 @Table(name = "ROL")

@@ -15,7 +15,16 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
-// Servicio que maneja la gestión de perfiles de menores
+/**
+ * Servicio de negocio para la gestión de perfiles de menores.
+ *
+ * <p>Administra la relación N:M entre usuarios y menores a través de la tabla
+ * pivot {@code USUARIO_MENOR} ({@link UsuarioMenor}). Un tutor puede tener
+ * varios menores y un menor puede ser accedido por varios usuarios (tutor + delegados).
+ *
+ * <p>Todas las operaciones de escritura validan que el usuario autenticado sea
+ * propietario del menor antes de proceder.
+ */
 @Service
 public class MenorService {
 
@@ -28,7 +37,13 @@ public class MenorService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    // Crea un perfil de menor y lo vincula al tutor autenticado
+    /**
+     * Crea un perfil de menor y lo vincula al tutor autenticado.
+     *
+     * @param dto datos del menor (nombre, fecha de nacimiento, sexo)
+     * @param emailTutor email del tutor autenticado
+     * @return DTO con los datos del menor creado
+     */
     public MenorResponseDTO crearMenor(MenorRequestDTO dto, String emailTutor) {
 
         // Busca el tutor por email
@@ -56,7 +71,13 @@ public class MenorService {
         return mapToDTO(menor);
     }
 
-    // Retorna todos los menores vinculados al tutor autenticado
+    /**
+     * Retorna todos los menores vinculados al usuario autenticado.
+     * Funciona para TUTOR (sus propios menores) y DELEGADO (menores con acceso asignado).
+     *
+     * @param emailTutor email del usuario autenticado
+     * @return lista de menores vinculados al usuario
+     */
     public List<MenorResponseDTO> obtenerMenoresPorTutor(String emailTutor) {
 
         Usuario tutor = usuarioRepository.findByEmail(emailTutor)
@@ -68,7 +89,15 @@ public class MenorService {
                 .collect(Collectors.toList());
     }
 
-    // Edita el perfil de un menor verificando que pertenezca al tutor
+    /**
+     * Edita el perfil de un menor verificando que el tutor sea su propietario.
+     *
+     * @param idMenor identificador del menor a editar
+     * @param dto nuevos datos del menor
+     * @param emailTutor email del tutor autenticado
+     * @return DTO con los datos actualizados del menor
+     * @throws RuntimeException si el tutor no tiene acceso al menor
+     */
     public MenorResponseDTO editarMenor(Integer idMenor, MenorRequestDTO dto, String emailTutor) {
 
         Usuario tutor = usuarioRepository.findByEmail(emailTutor)
@@ -94,7 +123,13 @@ public class MenorService {
         return mapToDTO(menor);
     }
 
-    // Elimina el perfil de un menor y su vínculo con el tutor
+    /**
+     * Elimina el perfil de un menor y su vínculo con el tutor.
+     *
+     * @param idMenor identificador del menor a eliminar
+     * @param emailTutor email del tutor autenticado
+     * @throws RuntimeException si el tutor no tiene acceso al menor
+     */
     public void eliminarMenor(Integer idMenor, String emailTutor) {
 
         Usuario tutor = usuarioRepository.findByEmail(emailTutor)

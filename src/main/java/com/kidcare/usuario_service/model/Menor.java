@@ -4,7 +4,12 @@ import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDate;
 
-// Entidad que representa el perfil de un menor en el sistema
+/**
+ * Entidad JPA que representa el perfil de un menor en el sistema.
+ *
+ * <p>Un menor puede estar vinculado a múltiples usuarios (su tutor y uno o más
+ * apoderados) a través de la tabla pivot {@code USUARIO_MENOR} ({@link UsuarioMenor}).
+ */
 @Data
 @Entity
 @Table(name = "MENOR")

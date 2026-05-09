@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import java.time.LocalDate;
 
-// DTO que recibe los datos para crear o editar un perfil de menor
+/** DTO de entrada para los endpoints POST y PUT /api/menores. */
 @Data
 public class MenorRequestDTO {
 
