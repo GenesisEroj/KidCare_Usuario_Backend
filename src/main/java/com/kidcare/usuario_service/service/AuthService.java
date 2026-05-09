@@ -18,10 +18,12 @@ import java.util.UUID;
  *
  * <p>Responsabilidades:
  * <ul>
- *   <li>Registro de nuevos usuarios (TUTOR o DELEGADO)</li>
+ *   <li>Registro de nuevos usuarios (solo TUTOR — el rol DELEGADO lo asigna el tutor)</li>
  *   <li>Autenticación y generación de token JWT</li>
  *   <li>Solicitud y restablecimiento de contraseña via email</li>
  * </ul>
+ *
+ * <p>Política de contraseñas: mínimo 8 caracteres, al menos una mayúscula y un símbolo especial.
  */
 @Service
 public class AuthService {
@@ -42,34 +44,47 @@ public class AuthService {
     private EmailService emailService;
 
     /**
-     * Registra un nuevo usuario en el sistema.
+     * Valida que la contraseña cumpla la política de seguridad del sistema.
+     * Mínimo 8 caracteres, al menos una mayúscula y un símbolo especial.
+     */
+    private void validarPassword(String password) {
+        if (password == null || password.length() < 8) {
+            throw new RuntimeException("La contraseña debe tener al menos 8 caracteres");
+        }
+        if (password.chars().noneMatch(Character::isUpperCase)) {
+            throw new RuntimeException("La contraseña debe contener al menos una letra mayúscula");
+        }
+        if (password.chars().allMatch(c -> Character.isLetterOrDigit(c))) {
+            throw new RuntimeException("La contraseña debe contener al menos un símbolo especial (!@#$%...)");
+        }
+    }
+
+    /**
+     * Registra un nuevo usuario en el sistema con rol TUTOR.
      *
-     * <p>El rol se determina por el campo {@code rolNombre} del DTO:
-     * si vale "DELEGADO" se crea con ese rol, en cualquier otro caso se asigna TUTOR.
-     * Al registrarse exitosamente se genera y retorna un token JWT listo para usar.
+     * <p>El registro público solo permite crear cuentas TUTOR.
+     * El rol DELEGADO es asignado por el tutor mediante {@code /api/delegados/vincular}.
+     * Valida la política de contraseña antes de guardar.
      *
-     * @param dto datos del nuevo usuario (nombre, email, contraseña, términos, rolNombre)
+     * @param dto nombre completo, email, contraseña, teléfono (opcional), aceptaTerminos
      * @return token JWT + email + nombre del rol asignado
-     * @throws RuntimeException si el email ya está registrado o el rol no existe en BD
+     * @throws RuntimeException si el email ya existe, no acepta términos o la contraseña no cumple la política
      */
     public AuthResponseDTO registrar(RegistroRequestDTO dto) {
 
-        // Verifica que el usuario aceptó los términos y condiciones
         if (dto.getAceptaTerminos() == null || !dto.getAceptaTerminos()) {
             throw new RuntimeException("Debe aceptar los términos y condiciones");
         }
 
-        // Verifica que el correo no esté registrado
         if (usuarioRepository.existsByEmail(dto.getEmail())) {
             throw new RuntimeException("El correo ya está registrado");
         }
 
-        // Determina el rol: TUTOR por defecto, acepta DELEGADO
-        String nombreRol = "DELEGADO".equalsIgnoreCase(dto.getRolNombre()) ? "DELEGADO" : "TUTOR";
-        Rol rol = rolRepository.findByNombre(nombreRol)
-                .orElseThrow(() -> new RuntimeException("Rol " + nombreRol + " no encontrado"));
+        validarPassword(dto.getPassword());
 
-        // Crea el nuevo usuario
+        Rol rol = rolRepository.findByNombre("TUTOR")
+                .orElseThrow(() -> new RuntimeException("Rol TUTOR no encontrado — verifica que la base de datos esté inicializada"));
+
         Usuario usuario = new Usuario();
         usuario.setNombreCompleto(dto.getNombreCompleto());
         usuario.setEmail(dto.getEmail());
@@ -81,7 +96,6 @@ public class AuthService {
 
         usuarioRepository.save(usuario);
 
-        // Genera y retorna el token JWT
         String token = jwtUtil.generateToken(usuario.getEmail(), rol.getNombre(), usuario.getIdUsuario());
         return new AuthResponseDTO(token, usuario.getEmail(), rol.getNombre());
     }
@@ -89,43 +103,33 @@ public class AuthService {
     /**
      * Autentica a un usuario con email y contraseña.
      *
-     * <p>Verifica que la cuenta exista, esté activa y que la contraseña
-     * coincida con el hash almacenado (BCrypt). Retorna un JWT válido por
-     * el tiempo configurado en {@code jwt.expiration}.
-     *
      * @param dto email y contraseña del usuario
      * @return token JWT + email + nombre del rol
      * @throws RuntimeException si las credenciales son incorrectas o la cuenta está desactivada
      */
     public AuthResponseDTO login(LoginRequestDTO dto) {
 
-        // Busca el usuario por correo
         Usuario usuario = usuarioRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new RuntimeException("Credenciales incorrectas"));
 
-        // Verifica que la cuenta esté activa
         if (!usuario.getActivo()) {
             throw new RuntimeException("La cuenta está desactivada");
         }
 
-        // Verifica la contraseña
         if (!passwordEncoder.matches(dto.getPassword(), usuario.getPasswordHash())) {
             throw new RuntimeException("Credenciales incorrectas");
         }
 
-        // Genera y retorna el token JWT
         String token = jwtUtil.generateToken(usuario.getEmail(), usuario.getRol().getNombre(), usuario.getIdUsuario());
         return new AuthResponseDTO(token, usuario.getEmail(), usuario.getRol().getNombre());
     }
 
     /**
-     * Genera un token de recuperación y envía el correo al usuario.
+     * Genera un token de recuperación de contraseña y lo envía al correo del usuario.
+     * En modo dev ({@code mail.dev-mode=true}) el token se imprime en la consola del servidor.
      *
-     * <p>El token es un UUID aleatorio con vigencia de 24 horas.
-     * Se envía al correo del usuario via Gmail SMTP a través de {@link EmailService}.
-     *
-     * @param dto correo electrónico del usuario que olvidó su contraseña
-     * @throws RuntimeException si el correo no está registrado en el sistema
+     * @param dto correo electrónico del usuario
+     * @throws RuntimeException si el correo no está registrado
      */
     public void solicitarRecuperacion(RecuperarPasswordRequestDTO dto) {
 
@@ -141,26 +145,24 @@ public class AuthService {
     }
 
     /**
-     * Restablece la contraseña del usuario usando el token recibido por correo.
+     * Restablece la contraseña usando el token recibido por correo.
+     * Aplica la misma política de contraseña que el registro.
+     * El token se invalida tras el primer uso.
      *
-     * <p>Valida que el token exista y no haya expirado antes de actualizar la contraseña.
-     * Tras el restablecimiento, el token se invalida para evitar reutilización.
-     *
-     * @param dto token de recuperación y nueva contraseña
-     * @throws RuntimeException si el token es inválido o ha expirado
+     * @param dto token UUID y nueva contraseña
+     * @throws RuntimeException si el token es inválido, expiró o la contraseña no cumple la política
      */
     public void restablecerPassword(NuevaPasswordRequestDTO dto) {
 
-        // Busca el usuario por token de recuperación
         Usuario usuario = usuarioRepository.findByTokenRecuperacion(dto.getToken())
                 .orElseThrow(() -> new RuntimeException("Token inválido"));
 
-        // Verifica que el token no haya expirado
         if (usuario.getFechaExpiracionToken().isBefore(LocalDate.now())) {
             throw new RuntimeException("El token ha expirado");
         }
 
-        // Actualiza la contraseña y limpia el token
+        validarPassword(dto.getNuevaPassword());
+
         usuario.setPasswordHash(passwordEncoder.encode(dto.getNuevaPassword()));
         usuario.setTokenRecuperacion(null);
         usuario.setFechaExpiracionToken(null);

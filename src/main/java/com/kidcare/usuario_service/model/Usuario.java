@@ -51,14 +51,14 @@ public class Usuario {
     private Boolean activo = true;
 
     // Fecha de registro en el sistema
-    @Column(name = "fecha_creacion", nullable = false)
+    @Column(name = "fechaCreacion", nullable = false)
     private LocalDate fechaCreacion;
 
     // Token para recuperación de contraseña
-    @Column(name = "token_recuperacion")
+    @Column(name = "tokenRecuperacion")
     private String tokenRecuperacion;
 
     // Fecha de expiración del token de recuperación
-    @Column(name = "fecha_expiracion_token")
+    @Column(name = "fechaExpiracionToken")
     private LocalDate fechaExpiracionToken;
 }

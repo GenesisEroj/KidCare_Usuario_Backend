@@ -26,7 +26,7 @@ public class Menor {
     private String nombre;
 
     // Fecha de nacimiento del menor
-    @Column(name = "fecha_nacimiento", nullable = false)
+    @Column(name = "fechaNacimiento", nullable = false)
     private LocalDate fechaNacimiento;
 
     // Sexo del menor
