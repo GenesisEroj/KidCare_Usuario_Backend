@@ -15,4 +15,7 @@ public interface UsuarioMenorRepository extends JpaRepository<UsuarioMenor, Usua
 
     // Obtiene todos los tutores vinculados a un menor
     List<UsuarioMenor> findByIdIdMenor(Integer idMenor);
+
+    // Obtiene vínculos de un menor excluyendo a un usuario (para detectar delegados)
+    List<UsuarioMenor> findByIdIdMenorAndIdIdUsuarioNot(Integer idMenor, Integer idUsuario);
 }

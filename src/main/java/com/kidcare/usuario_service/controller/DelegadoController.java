@@ -1,5 +1,6 @@
 package com.kidcare.usuario_service.controller;
 
+import com.kidcare.usuario_service.dto.DelegadoResponseDTO;
 import com.kidcare.usuario_service.dto.VincularDelegadoRequestDTO;
 import com.kidcare.usuario_service.service.DelegadoService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,15 +9,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Controlador REST para la vinculación de apoderados a menores.
+ * Controlador REST para la gestión de apoderados vinculados a menores.
  *
  * <p>Solo accesible para usuarios con rol TUTOR o ADMIN según las reglas
  * definidas en {@link com.kidcare.usuario_service.security.SecurityConfig}.
- * El tutor debe ser propietario del menor para poder vincular un apoderado.
  *
- * <p>Endpoints disponibles:
+ * <p>Endpoints:
  * <ul>
- *   <li>POST /api/delegados/vincular — vincula un DELEGADO a un menor del tutor autenticado</li>
+ *   <li>POST   /api/delegados/vincular          — asigna un apoderado al menor</li>
+ *   <li>DELETE /api/delegados/desvincular/{id}  — revoca el acceso del apoderado</li>
+ *   <li>GET    /api/delegados/menor/{id}        — consulta el apoderado actual</li>
  * </ul>
  */
 @RestController
@@ -27,17 +29,49 @@ public class DelegadoController {
     private DelegadoService delegadoService;
 
     /**
-     * Vincula un apoderado (DELEGADO) a un menor del tutor autenticado.
+     * Vincula un usuario como apoderado de un menor del tutor autenticado.
+     * Solo se permite un apoderado por menor a la vez.
      *
-     * @param dto email del apoderado e ID del menor
-     * @param authentication contexto de seguridad; extrae el email del tutor
-     * @return 200 con mensaje de confirmación — 400 si el tutor no posee el menor
-     *         o el email no corresponde a un DELEGADO registrado
+     * @param dto              email del apoderado, ID del menor y fecha de expiración opcional
+     * @param authentication   contexto de seguridad; extrae el email del tutor
+     * @return 200 con mensaje de confirmación
      */
     @PostMapping("/vincular")
     public ResponseEntity<String> vincular(@RequestBody VincularDelegadoRequestDTO dto,
             Authentication authentication) {
-        delegadoService.vincularDelegado(authentication.getName(), dto.getEmailDelegado(), dto.getIdMenor());
+        delegadoService.vincularDelegado(
+                authentication.getName(),
+                dto.getEmailDelegado(),
+                dto.getIdMenor(),
+                dto.getFechaExpiracion());
         return ResponseEntity.ok("Apoderado vinculado correctamente");
+    }
+
+    /**
+     * Revoca el acceso del apoderado actual al menor indicado.
+     *
+     * @param idMenor        ID del menor
+     * @param authentication contexto de seguridad; extrae el email del tutor
+     * @return 200 con mensaje de confirmación
+     */
+    @DeleteMapping("/desvincular/{idMenor}")
+    public ResponseEntity<String> desvincular(@PathVariable Integer idMenor,
+            Authentication authentication) {
+        delegadoService.desvincularDelegado(authentication.getName(), idMenor);
+        return ResponseEntity.ok("Acceso revocado correctamente");
+    }
+
+    /**
+     * Devuelve el apoderado actualmente vinculado al menor.
+     *
+     * @param idMenor        ID del menor
+     * @param authentication contexto de seguridad; extrae el email del tutor
+     * @return 200 con datos del apoderado, o 204 si no hay ninguno asignado
+     */
+    @GetMapping("/menor/{idMenor}")
+    public ResponseEntity<DelegadoResponseDTO> obtenerDelegado(@PathVariable Integer idMenor,
+            Authentication authentication) {
+        DelegadoResponseDTO dto = delegadoService.obtenerDelegado(authentication.getName(), idMenor);
+        return dto != null ? ResponseEntity.ok(dto) : ResponseEntity.noContent().build();
     }
 }

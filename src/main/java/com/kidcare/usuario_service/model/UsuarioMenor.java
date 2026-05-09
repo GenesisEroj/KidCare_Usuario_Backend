@@ -3,6 +3,7 @@ package com.kidcare.usuario_service.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.io.Serializable;
+import java.time.LocalDate;
 
 /**
  * Entidad JPA de tabla pivot que resuelve la relación N:M entre {@link Usuario} y {@link Menor}.
@@ -31,4 +32,8 @@ public class UsuarioMenor {
     @MapsId("idMenor")
     @JoinColumn(name = "id_menor")
     private Menor menor;
+
+    // Fecha hasta la que el delegado tiene acceso; null = permanente
+    @Column(name = "fechaExpiracion")
+    private LocalDate fechaExpiracion;
 }
