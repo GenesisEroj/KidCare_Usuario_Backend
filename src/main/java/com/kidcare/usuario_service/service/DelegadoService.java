@@ -1,24 +1,29 @@
 package com.kidcare.usuario_service.service;
 
 import com.kidcare.usuario_service.model.Menor;
+import com.kidcare.usuario_service.model.Rol;
 import com.kidcare.usuario_service.model.Usuario;
 import com.kidcare.usuario_service.model.UsuarioMenor;
 import com.kidcare.usuario_service.model.UsuarioMenorId;
 import com.kidcare.usuario_service.repository.MenorRepository;
+import com.kidcare.usuario_service.repository.RolRepository;
 import com.kidcare.usuario_service.repository.UsuarioMenorRepository;
 import com.kidcare.usuario_service.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Servicio de negocio para la vinculación de apoderados a menores.
  *
- * <p>Valida tres condiciones antes de crear el vínculo:
+ * <p>Valida dos condiciones antes de crear el vínculo:
  * <ol>
  *   <li>El tutor autenticado posee el menor indicado.</li>
- *   <li>El usuario con el email proporcionado existe y tiene rol DELEGADO.</li>
- *   <li>El apoderado no está ya vinculado a ese menor.</li>
+ *   <li>El usuario destinatario existe y no está ya vinculado al menor.</li>
  * </ol>
+ * Si el usuario destinatario tiene rol TUTOR se deja intacto (ya tiene permisos
+ * equivalentes o superiores). Si tiene otro rol se le asigna DELEGADO
+ * automáticamente para que pueda acceder al historial del menor.
  */
 @Service
 public class DelegadoService {
@@ -32,20 +37,23 @@ public class DelegadoService {
     @Autowired
     private MenorRepository menorRepository;
 
+    @Autowired
+    private RolRepository rolRepository;
+
     /**
-     * Vincula un apoderado (DELEGADO) a un menor del tutor.
+     * Vincula un usuario a un menor del tutor, asignándole acceso como apoderado.
      *
      * @param emailTutor    email del tutor autenticado (propietario del menor)
-     * @param emailDelegado email del usuario DELEGADO a vincular
+     * @param emailDelegado email del usuario a vincular
      * @param idMenor       identificador del menor al que se da acceso
      * @throws RuntimeException si alguna de las validaciones falla
      */
+    @Transactional
     public void vincularDelegado(String emailTutor, String emailDelegado, Integer idMenor) {
 
         Usuario tutor = usuarioRepository.findByEmail(emailTutor)
                 .orElseThrow(() -> new RuntimeException("Tutor no encontrado"));
 
-        // Verifica que el tutor tenga acceso al menor
         UsuarioMenorId tutorMenorId = new UsuarioMenorId();
         tutorMenorId.setIdUsuario(tutor.getIdUsuario());
         tutorMenorId.setIdMenor(idMenor);
@@ -54,18 +62,22 @@ public class DelegadoService {
         }
 
         Usuario delegado = usuarioRepository.findByEmail(emailDelegado)
-                .orElseThrow(() -> new RuntimeException("El apoderado no está registrado en el sistema"));
+                .orElseThrow(() -> new RuntimeException("El usuario no está registrado en el sistema"));
 
-        if (!delegado.getRol().getNombre().equalsIgnoreCase("DELEGADO")) {
-            throw new RuntimeException("El usuario no tiene rol de apoderado");
+        // Si el usuario no es TUTOR ni ADMIN, asignarle rol DELEGADO automáticamente
+        String rolActual = delegado.getRol().getNombre();
+        if (!rolActual.equalsIgnoreCase("TUTOR") && !rolActual.equalsIgnoreCase("ADMIN")) {
+            Rol rolDelegado = rolRepository.findByNombre("DELEGADO")
+                    .orElseThrow(() -> new RuntimeException("Rol DELEGADO no encontrado"));
+            delegado.setRol(rolDelegado);
+            usuarioRepository.save(delegado);
         }
 
-        // Verifica que no esté vinculado ya
         UsuarioMenorId delegadoMenorId = new UsuarioMenorId();
         delegadoMenorId.setIdUsuario(delegado.getIdUsuario());
         delegadoMenorId.setIdMenor(idMenor);
         if (usuarioMenorRepository.existsById(delegadoMenorId)) {
-            throw new RuntimeException("El apoderado ya tiene acceso a este menor");
+            throw new RuntimeException("El usuario ya tiene acceso a este menor");
         }
 
         Menor menor = menorRepository.findById(idMenor)
