@@ -4,7 +4,16 @@ import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDate;
 
-// Entidad que representa a los usuarios del sistema (tutores, delegados y admins)
+/**
+ * Entidad JPA que representa a un usuario del sistema.
+ *
+ * <p>Incluye usuarios con rol TUTOR (padre/tutor principal), DELEGADO (apoderado)
+ * y ADMIN. El campo {@code tokenRecuperacion} y {@code fechaExpiracionToken}
+ * se usan exclusivamente durante el flujo de recuperación de contraseña por correo.
+ *
+ * <p>Hibernate genera la tabla {@code USUARIO} automáticamente según los campos
+ * ({@code ddl-auto=update}).
+ */
 @Data
 @Entity
 @Table(name = "USUARIO")
@@ -42,14 +51,14 @@ public class Usuario {
     private Boolean activo = true;
 
     // Fecha de registro en el sistema
-    @Column(name = "fecha_creacion", nullable = false)
+    @Column(name = "fechaCreacion", nullable = false)
     private LocalDate fechaCreacion;
 
     // Token para recuperación de contraseña
-    @Column(name = "token_recuperacion")
+    @Column(name = "tokenRecuperacion")
     private String tokenRecuperacion;
 
     // Fecha de expiración del token de recuperación
-    @Column(name = "fecha_expiracion_token")
+    @Column(name = "fechaExpiracionToken")
     private LocalDate fechaExpiracionToken;
 }

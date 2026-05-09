@@ -11,7 +11,20 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// Controlador que expone los endpoints de gestión de menores
+/**
+ * Controlador REST para la gestión de perfiles de menores.
+ *
+ * <p>Todos los endpoints requieren JWT. El email del usuario autenticado se
+ * extrae del {@link Authentication} para asociar los menores al tutor correcto.
+ *
+ * <p>Endpoints disponibles:
+ * <ul>
+ *   <li>POST /api/menores — crea un perfil de menor (TUTOR/ADMIN)</li>
+ *   <li>GET /api/menores — lista los menores del usuario autenticado</li>
+ *   <li>PUT /api/menores/{id} — edita un perfil de menor (TUTOR/ADMIN)</li>
+ *   <li>DELETE /api/menores/{id} — elimina un perfil de menor (TUTOR/ADMIN)</li>
+ * </ul>
+ */
 @RestController
 @RequestMapping("/api/menores")
 public class MenorController {
@@ -19,20 +32,39 @@ public class MenorController {
     @Autowired
     private MenorService menorService;
 
-    // POST /api/menores — crea un perfil de menor vinculado al tutor autenticado
+    /**
+     * Crea un nuevo perfil de menor vinculado al tutor autenticado.
+     *
+     * @param dto datos del menor (nombre, fecha de nacimiento, sexo)
+     * @param authentication contexto de seguridad; provee el email del tutor
+     * @return 200 con los datos del menor creado
+     */
     @PostMapping
     public ResponseEntity<MenorResponseDTO> crear(@Valid @RequestBody MenorRequestDTO dto,
             Authentication authentication) {
         return ResponseEntity.ok(menorService.crearMenor(dto, authentication.getName()));
     }
 
-    // GET /api/menores — retorna todos los menores del tutor autenticado
+    /**
+     * Retorna todos los menores asociados al usuario autenticado.
+     * Para TUTOR devuelve sus menores; para DELEGADO devuelve los menores a los que tiene acceso.
+     *
+     * @param authentication contexto de seguridad; provee el email del usuario
+     * @return 200 con la lista de menores
+     */
     @GetMapping
     public ResponseEntity<List<MenorResponseDTO>> listar(Authentication authentication) {
         return ResponseEntity.ok(menorService.obtenerMenoresPorTutor(authentication.getName()));
     }
 
-    // PUT /api/menores/{id} — edita el perfil de un menor del tutor autenticado
+    /**
+     * Edita el perfil de un menor existente.
+     *
+     * @param id identificador del menor a editar
+     * @param dto nuevos datos del menor
+     * @param authentication contexto de seguridad; valida que el tutor sea propietario
+     * @return 200 con los datos actualizados del menor
+     */
     @PutMapping("/{id}")
     public ResponseEntity<MenorResponseDTO> editar(@PathVariable Integer id,
             @Valid @RequestBody MenorRequestDTO dto,
@@ -40,8 +72,13 @@ public class MenorController {
         return ResponseEntity.ok(menorService.editarMenor(id, dto, authentication.getName()));
     }
 
-    // DELETE /api/menores/{id} — elimina el perfil de un menor del tutor
-    // autenticado
+    /**
+     * Elimina el perfil de un menor.
+     *
+     * @param id identificador del menor a eliminar
+     * @param authentication contexto de seguridad; valida que el tutor sea propietario
+     * @return 200 con mensaje de confirmación
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<String> eliminar(@PathVariable Integer id,
             Authentication authentication) {

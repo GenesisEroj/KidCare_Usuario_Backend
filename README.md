@@ -1,26 +1,30 @@
-# KidCare — Microservicio de Usuario
+# KidCare — Usuario Service
 
-Microservicio encargado de la autenticación, gestión de usuarios, perfiles de menores y auditoría del sistema KidCare.
+Microservicio de gestión de usuarios y autenticación del sistema KidCare.
+Se encarga del registro, login, recuperación de contraseña y administración de perfiles de menores y apoderados.
 
 ---
 
-## Tecnologías
+## Equipo
 
-- Java 21
-- Spring Boot 3.5.14
-- Spring Security + JWT (jjwt 0.12.6)
-- Spring Data JPA
-- MySQL
+| Nombre | Rol |
+|---|---|
+| Génesis Rojas | Líder de Proyecto / DBA / Analista Funcional |
+| Francisco Monsalve | Frontend Mobile / QA |
+| Benjamín Peña | Backend / Integración IA / DevOps |
+
+---
+
+## Stack técnico
+
+- Java 21 + Spring Boot 3.x
+- Spring Security + JWT (HMAC-SHA256, jjwt 0.12.6)
+- MySQL 8.0 (Docker) — base de datos `db_usuario`
+- Spring Data JPA / Hibernate (`ddl-auto=update`)
+- Spring Boot Mail — Gmail SMTP (modo dev: imprime token en consola)
 - Lombok
-- Maven
 
----
-
-## Puerto
-
-```
-8081
-```
+**Puerto:** `8081`
 
 ---
 
@@ -30,128 +34,250 @@ Microservicio encargado de la autenticación, gestión de usuarios, perfiles de 
 src/main/java/com/kidcare/usuario_service/
 │
 ├── model/
-│   ├── Rol.java               → Entidad que representa los roles del sistema (ADMIN, TUTOR, DELEGADO)
-│   ├── Permiso.java           → Entidad que representa las acciones permitidas en el sistema
-│   ├── RolPermiso.java        → Tabla pivot N:M entre Rol y Permiso
-│   ├── RolPermisoId.java      → Clave primaria compuesta de RolPermiso
-│   ├── Usuario.java           → Entidad principal de usuarios del sistema
-│   ├── Menor.java             → Entidad que representa el perfil de un menor
-│   ├── UsuarioMenor.java      → Tabla pivot N:M entre Usuario y Menor
-│   ├── UsuarioMenorId.java    → Clave primaria compuesta de UsuarioMenor
-│   └── Auditoria.java         → Entidad que registra acciones del administrador
+│   ├── Usuario.java        → Entidad principal con email, password (BCrypt) y token de recuperación
+│   ├── Rol.java            → Entidad de rol: ADMIN, TUTOR o DELEGADO
+│   ├── Menor.java          → Entidad de perfil de menor
+│   └── UsuarioMenor.java   → Tabla pivot que vincula usuarios con menores (N:M)
 │
 ├── repository/
-│   ├── RolRepository.java           → Acceso a datos de Rol (búsqueda por nombre)
-│   ├── UsuarioRepository.java       → Acceso a datos de Usuario (búsqueda por email y token)
-│   ├── MenorRepository.java         → Acceso a datos de Menor
-│   ├── UsuarioMenorRepository.java  → Acceso a datos de UsuarioMenor (menores por tutor)
-│   └── AuditoriaRepository.java     → Acceso a datos de Auditoria (registros por usuario)
+│   ├── UsuarioRepository.java → Búsqueda por email y token de recuperación
+│   ├── RolRepository.java     → Búsqueda por nombre de rol
+│   └── MenorRepository.java   → Búsqueda de menores por usuario
 │
 ├── dto/
-│   ├── RegistroRequestDTO.java           → Datos para registrar un nuevo usuario
-│   ├── LoginRequestDTO.java              → Datos para iniciar sesión
-│   ├── AuthResponseDTO.java              → Token JWT y datos del usuario autenticado
-│   ├── MenorRequestDTO.java              → Datos para crear o editar un menor
-│   ├── MenorResponseDTO.java             → Datos de respuesta de un menor
-│   ├── RecuperarPasswordRequestDTO.java  → Correo para solicitar recuperación de contraseña
-│   └── NuevaPasswordRequestDTO.java      → Token y nueva contraseña para restablecerla
+│   ├── RegistroRequestDTO.java         → Datos para registro (nombreCompleto, email, password, rolNombre, aceptaTerminos)
+│   ├── LoginRequestDTO.java            → Credenciales de login
+│   ├── AuthResponseDTO.java            → Respuesta con token JWT, email y rol
+│   ├── RecuperarPasswordRequestDTO.java → Email para solicitar recuperación
+│   ├── NuevaPasswordRequestDTO.java    → Token UUID + nueva contraseña
+│   ├── MenorRequestDTO.java            → Datos para crear/editar un menor
+│   ├── MenorResponseDTO.java           → Datos de respuesta de un menor
+│   └── VincularDelegadoRequestDTO.java → Email del delegado + idMenor
 │
 ├── security/
-│   ├── JwtUtil.java       → Genera, valida y extrae datos de tokens JWT
-│   ├── JwtFilter.java     → Intercepta cada request y valida el token JWT del header
-│   └── SecurityConfig.java → Configura rutas públicas, protegidas y política de sesión
+│   ├── JwtUtil.java        → Genera y valida tokens JWT (claims: sub=email, rol, idUsuario)
+│   ├── JwtFilter.java      → Intercepta requests y extrae el JWT del header Authorization
+│   └── SecurityConfig.java → Rutas públicas: /api/auth/**, rutas protegidas: todo lo demás
 │
 ├── service/
-│   ├── AuthService.java    → Lógica de registro, login y recuperación de contraseña
-│   └── MenorService.java   → Lógica de creación, edición, listado y eliminación de menores
+│   ├── AuthService.java    → Registro, login, recuperación y restablecimiento de contraseña
+│   ├── MenorService.java   → CRUD de perfiles de menores
+│   ├── DelegadoService.java → Vinculación de apoderados a menores
+│   └── EmailService.java   → Envío de correo o impresión en consola (modo dev)
 │
 ├── controller/
-│   ├── AuthController.java     → Endpoints POST /api/auth/registro y POST /api/auth/login
-│   ├── PasswordController.java → Endpoints POST /api/password/recuperar y /restablecer
-│   └── MenorController.java    → Endpoints CRUD de /api/menores
+│   ├── AuthController.java      → POST /api/auth/{registro,login,recuperar,restablecer}
+│   ├── MenorController.java     → CRUD /api/menores
+│   └── DelegadoController.java  → POST /api/delegados/vincular
 │
 └── exception/
-    └── GlobalExceptionHandler.java → Maneja errores de validación y excepciones de negocio
+    └── GlobalExceptionHandler.java → Errores de validación → 400 Bad Request
 ```
 
 ---
 
 ## Endpoints
 
-| Método | Ruta | Acceso | Descripción |
-|--------|------|--------|-------------|
-| POST | `/api/auth/registro` | Público | Registra un nuevo tutor |
-| POST | `/api/auth/login` | Público | Inicia sesión y retorna token JWT |
-| POST | `/api/password/recuperar` | Público | Envía token de recuperación al correo |
-| POST | `/api/password/restablecer` | Público | Restablece la contraseña con el token |
-| GET | `/api/menores` | Autenticado | Lista los menores del tutor |
-| POST | `/api/menores` | Autenticado | Crea un perfil de menor |
-| PUT | `/api/menores/{id}` | Autenticado | Edita el perfil de un menor |
-| DELETE | `/api/menores/{id}` | Autenticado | Elimina el perfil de un menor |
+### Autenticación (públicos)
+
+| Método | Ruta | Body | Descripción |
+|---|---|---|---|
+| POST | `/api/auth/registro` | `{nombreCompleto, email, password, rolNombre, aceptaTerminos}` | Registra nuevo usuario |
+| POST | `/api/auth/login` | `{email, password}` | Retorna JWT |
+| POST | `/api/auth/recuperar` | `{email}` | Genera token de recuperación |
+| POST | `/api/auth/restablecer` | `{token, nuevaPassword}` | Establece nueva contraseña |
+
+### Menores (requieren JWT)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/api/menores` | Crea perfil de menor (TUTOR/ADMIN) |
+| GET | `/api/menores` | Lista menores del usuario autenticado |
+| PUT | `/api/menores/{id}` | Edita perfil de menor |
+| DELETE | `/api/menores/{id}` | Elimina perfil de menor |
+
+### Delegados (requieren JWT — solo TUTOR/ADMIN)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/api/delegados/vincular` | Vincula un apoderado a un menor por email |
 
 ---
 
-## Requisitos previos
+## Modelos de datos
 
-- Java 21 instalado
-- Maven instalado
-- MySQL corriendo (cuando se conecte la BD)
-- VS Code con Extension Pack for Java y Spring Boot Extension Pack
+```
+ROL          (id_rol, nombre UNIQUE, descripcion)
+USUARIO      (id_usuario, id_rol, nombre_completo, email UNIQUE, password_hash,
+              activo, token_recuperacion, fecha_expiracion_token)
+MENOR        (id_menor, nombre, fecha_nacimiento, sexo)
+USUARIO_MENOR (id_usuario, id_menor)  →  tabla pivot N:M
+```
 
 ---
 
-## Cómo iniciar el proyecto
+## Seguridad
 
-### 1. Clonar el repositorio
+- Contraseñas encriptadas con BCrypt
+- JWT firmado con `kidcare-secret-key-2024-segura-32chars` (expiración 24h)
+- Claims del JWT: `sub` (email), `rol`, `idUsuario`
+- Token de recuperación: UUID válido 24h, se invalida tras el primer uso
+
+---
+
+## Cómo iniciar en otro equipo
+
+### Prerrequisitos
+
+| Herramienta | Versión mínima | Descarga |
+|---|---|---|
+| Java JDK | 21 | https://adoptium.net |
+| Maven | 3.9+ | https://maven.apache.org/download.cgi |
+| Docker Desktop | 4.x | https://www.docker.com/products/docker-desktop |
+| Git | cualquiera | https://git-scm.com |
+
+Verifica la instalación:
+```bash
+java -version    # debe decir openjdk 21
+mvn -version     # debe decir Apache Maven 3.9.x
+docker --version # debe decir Docker version 24.x o superior
+```
+
+---
+
+### Paso 1 — Clonar el repositorio
 
 ```bash
 git clone https://github.com/vareeth227/KidCare_Usuario_Backend.git
 cd KidCare_Usuario_Backend
 ```
 
-### 2. Configurar variables de entorno
+---
 
-Edita el archivo `src/main/resources/application.properties` con tus datos de MySQL cuando tengas la base de datos lista:
+### Paso 2 — Iniciar MySQL con Docker
 
-```properties
-server.port=8081
-spring.application.name=usuario-service
-spring.datasource.url=jdbc:mysql://localhost:3306/db_users
-spring.datasource.username=TU_USUARIO
-spring.datasource.password=TU_PASSWORD
-spring.jpa.hibernate.ddl-auto=update
-jwt.secret=kidcare-secret-key-2024-segura-32chars
-jwt.expiration=86400000
+Crea el archivo `docker-compose.yml` en la carpeta raíz del proyecto con este contenido:
+
+```yaml
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: kidcare-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: kidcare123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+
+volumes:
+  mysql_data:
 ```
 
-### 3. Compilar el proyecto
+Luego inicia el contenedor:
+
+```bash
+docker compose up -d
+```
+
+Espera 15–20 segundos hasta que MySQL esté listo. Verifica con:
+
+```bash
+docker ps
+```
+
+Debes ver `kidcare-mysql` con estado `Up`.
+
+---
+
+### Paso 3 — Crear la base de datos
+
+```bash
+docker exec -it kidcare-mysql mysql -u root -pkidcare123 -e "CREATE DATABASE IF NOT EXISTS db_usuario CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+Verifica:
+
+```bash
+docker exec -it kidcare-mysql mysql -u root -pkidcare123 -e "SHOW DATABASES;"
+```
+
+Debes ver `db_usuario` en la lista.
+
+---
+
+### Paso 4 — Revisar application.properties
+
+El archivo `src/main/resources/application.properties` ya está configurado para conectarse a MySQL en localhost con las credenciales del Paso 2. No necesitas cambiar nada para desarrollo local.
+
+Para correo en desarrollo, el modo dev está activo por defecto (`mail.dev-mode=true`): el token de recuperación se imprime en la consola del servidor en lugar de enviarse por email. No se requiere configuración de Gmail.
+
+---
+
+### Paso 5 — Compilar
 
 ```bash
 mvn clean install -DskipTests
 ```
 
-### 4. Ejecutar el proyecto
+Espera a que aparezca `BUILD SUCCESS`.
+
+---
+
+### Paso 6 — Ejecutar
 
 ```bash
 mvn spring-boot:run
 ```
 
-El microservicio estará disponible en `http://localhost:8081`
+Espera a que aparezca:
+
+```
+Started UsuarioServiceApplication in X.XXX seconds
+```
+
+El servicio queda disponible en `http://localhost:8081`.
+
+---
+
+### Paso 7 — Verificar
+
+**Registro de usuario de prueba** (PowerShell):
+
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8081/api/auth/registro" `
+  -Method POST -ContentType "application/json" `
+  -Body '{"nombreCompleto":"Test","email":"test@kidcare.com","password":"Password123","rolNombre":"TUTOR","aceptaTerminos":true}'
+```
+
+Respuesta esperada: objeto JSON con `token`, `email` y `rol`.
+
+**Login:**
+
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8081/api/auth/login" `
+  -Method POST -ContentType "application/json" `
+  -Body '{"email":"test@kidcare.com","password":"Password123"}'
+```
+
+**Recuperar contraseña:**
+
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8081/api/auth/recuperar" `
+  -Method POST -ContentType "application/json" `
+  -Body '{"email":"test@kidcare.com"}'
+```
+
+El token aparecerá en la consola del servidor (modo dev).
 
 ---
 
 ## Notas importantes
 
+- La clave `jwt.secret` debe ser idéntica en los 4 microservicios de KidCare.
+- El campo `nombre` de la tabla `ROL` tiene restricción UNIQUE — si la base de datos ya tenía roles duplicados de pruebas anteriores, ejecuta: `docker exec kidcare-mysql mysql -u root -pkidcare123 db_usuario -e "SET FOREIGN_KEY_CHECKS=0; DELETE FROM usuario; DELETE FROM rol; SET FOREIGN_KEY_CHECKS=1;"`
 - El token JWT debe enviarse en el header `Authorization: Bearer <token>` en todas las rutas protegidas.
-- La clave `jwt.secret` debe ser la misma en todos los microservicios de KidCare.
-- Por ahora la base de datos está desactivada en `application.properties`. Cuando se conecte Docker hay que eliminar la línea `spring.autoconfigure.exclude`.
-
----
-
-## Integrantes
-
-| Nombre | Rol |
-|--------|-----|
-| Benjamín Peña | Líder de Proyecto / DBA / Analista Funcional |
-| Francisco Monsalve | Frontend Mobile / QA |
-| Génesis Rojas | Backend / Integración IA / DevOps |

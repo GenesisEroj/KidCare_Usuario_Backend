@@ -4,7 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
-// DTO que recibe el correo para solicitar recuperación de contraseña
+/** DTO de entrada para el endpoint POST /api/auth/recuperar. */
 @Data
 public class RecuperarPasswordRequestDTO {
 

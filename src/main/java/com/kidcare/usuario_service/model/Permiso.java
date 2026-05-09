@@ -16,7 +16,7 @@ public class Permiso {
     private Integer idPermiso;
 
     // Nombre descriptivo de la acción permitida
-    @Column(name = "nombre_permiso", nullable = false)
+    @Column(name = "nombre_permiso", nullable = false, unique = true)
     private String nombrePermiso;
 
     // Descripción opcional de la acción

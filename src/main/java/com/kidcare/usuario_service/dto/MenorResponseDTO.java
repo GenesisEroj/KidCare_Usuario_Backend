@@ -3,7 +3,7 @@ package com.kidcare.usuario_service.dto;
 import lombok.Data;
 import java.time.LocalDate;
 
-// DTO que retorna los datos de un perfil de menor
+/** DTO de respuesta para los endpoints GET, POST y PUT /api/menores. */
 @Data
 public class MenorResponseDTO {
 

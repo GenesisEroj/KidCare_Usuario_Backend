@@ -4,11 +4,17 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
-// DTO que recibe los datos para registrar un nuevo usuario
+/**
+ * DTO de entrada para el endpoint POST /api/auth/registro.
+ *
+ * <p>El registro público solo permite crear cuentas TUTOR.
+ * El rol DELEGADO es asignado por un tutor mediante /api/delegados/vincular.
+ * {@code aceptaTerminos} es obligatorio por la Ley 19.628 de protección de datos.
+ */
 @Data
 public class RegistroRequestDTO {
 
-    // Nombre completo del usuario
+    // Nombre completo del usuario (nombre + apellidos combinados)
     @NotBlank(message = "El nombre es obligatorio")
     private String nombreCompleto;
 
@@ -17,11 +23,11 @@ public class RegistroRequestDTO {
     @Email(message = "El email no tiene formato válido")
     private String email;
 
-    // Contraseña del usuario
+    // Contraseña: mínimo 8 caracteres, una mayúscula y un símbolo especial
     @NotBlank(message = "La contraseña es obligatoria")
     private String password;
 
-    // Teléfono opcional
+    // Teléfono de contacto (opcional)
     private String telefono;
 
     // Aceptación de términos y condiciones (obligatorio por Ley 19.628)
