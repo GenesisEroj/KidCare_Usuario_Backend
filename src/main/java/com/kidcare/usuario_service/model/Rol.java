@@ -22,7 +22,7 @@ public class Rol {
     private Integer idRol;
 
     // Nombre del rol: ADMIN, TUTOR o DELEGADO
-    @Column(name = "nombre", nullable = false)
+    @Column(name = "nombre", nullable = false, unique = true)
     private String nombre;
 
     // Descripción opcional del rol

@@ -15,26 +15,44 @@ import org.springframework.stereotype.Service;
  *   <li>spring.mail.username — correo Gmail del remitente</li>
  *   <li>spring.mail.password — contraseña de aplicación de Google</li>
  * </ul>
+ *
+ * <p>En modo desarrollo ({@code mail.dev-mode=true}) no se envía correo real;
+ * el token se imprime en la consola del servidor para facilitar las pruebas.
  */
 @Service
 public class EmailService {
 
-    @Autowired
+    @Autowired(required = false)
     private JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
+    @Value("${spring.mail.username:}")
     private String remitente;
+
+    /** Si es true, imprime el token en consola en lugar de enviar el correo. */
+    @Value("${mail.dev-mode:true}")
+    private boolean devMode;
 
     /**
      * Envía un correo de recuperación de contraseña al usuario.
      *
-     * <p>El correo contiene el token UUID generado por {@link AuthService#solicitarRecuperacion},
-     * que el usuario debe ingresar en la app para crear una nueva contraseña.
+     * <p>En modo desarrollo ({@code mail.dev-mode=true}) el token se muestra en la
+     * consola del servidor en lugar de enviarse por correo, lo que permite probar
+     * el flujo sin configurar Gmail SMTP.
      *
      * @param destinatario correo electrónico del usuario que olvidó su contraseña
      * @param token        UUID de recuperación válido por 24 horas
      */
     public void enviarCorreoRecuperacion(String destinatario, String token) {
+        if (devMode || mailSender == null || remitente.isBlank()) {
+            System.out.println("\n========================================");
+            System.out.println("  [DEV] TOKEN DE RECUPERACIÓN");
+            System.out.println("  Destinatario : " + destinatario);
+            System.out.println("  Token        : " + token);
+            System.out.println("  (copia este token en la app)");
+            System.out.println("========================================\n");
+            return;
+        }
+
         SimpleMailMessage mensaje = new SimpleMailMessage();
         mensaje.setFrom(remitente);
         mensaje.setTo(destinatario);
