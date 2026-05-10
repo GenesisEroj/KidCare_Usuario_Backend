@@ -149,6 +149,46 @@ public class MenorService {
         menorRepository.deleteById(idMenor);
     }
 
+    public MenorResponseDTO obtenerMenorPorId(Integer idMenor, String emailUsuario) {
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        UsuarioMenorId pivotId = new UsuarioMenorId();
+        pivotId.setIdUsuario(usuario.getIdUsuario());
+        pivotId.setIdMenor(idMenor);
+
+        if (!usuarioMenorRepository.existsById(pivotId)) {
+            throw new RuntimeException("No tienes acceso a este menor");
+        }
+
+        Menor menor = menorRepository.findById(idMenor)
+                .orElseThrow(() -> new RuntimeException("Menor no encontrado"));
+
+        return mapToDTO(menor);
+    }
+
+    public void vincularTutorAMenorExistente(Integer idMenor, String emailTutor) {
+        Usuario tutor = usuarioRepository.findByEmail(emailTutor)
+                .orElseThrow(() -> new RuntimeException("Tutor no encontrado"));
+
+        Menor menor = menorRepository.findById(idMenor)
+                .orElseThrow(() -> new RuntimeException("Menor no encontrado en el sistema"));
+
+        UsuarioMenorId pivotId = new UsuarioMenorId();
+        pivotId.setIdUsuario(tutor.getIdUsuario());
+        pivotId.setIdMenor(menor.getIdMenor());
+
+        if (usuarioMenorRepository.existsById(pivotId)) {
+            throw new RuntimeException("Ya tienes acceso a este menor");
+        }
+
+        UsuarioMenor usuarioMenor = new UsuarioMenor();
+        usuarioMenor.setId(pivotId);
+        usuarioMenor.setUsuario(tutor);
+        usuarioMenor.setMenor(menor);
+        usuarioMenorRepository.save(usuarioMenor);
+    }
+
     // Convierte una entidad Menor a MenorResponseDTO
     private MenorResponseDTO mapToDTO(Menor menor) {
         MenorResponseDTO dto = new MenorResponseDTO();

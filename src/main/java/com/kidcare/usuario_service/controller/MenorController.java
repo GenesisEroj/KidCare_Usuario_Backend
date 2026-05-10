@@ -72,6 +72,19 @@ public class MenorController {
         return ResponseEntity.ok(menorService.editarMenor(id, dto, authentication.getName()));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<MenorResponseDTO> obtenerPorId(@PathVariable Integer id,
+            Authentication authentication) {
+        return ResponseEntity.ok(menorService.obtenerMenorPorId(id, authentication.getName()));
+    }
+
+    @PostMapping("/vincular/{idMenor}")
+    public ResponseEntity<String> vincularExistente(@PathVariable Integer idMenor,
+            Authentication authentication) {
+        menorService.vincularTutorAMenorExistente(idMenor, authentication.getName());
+        return ResponseEntity.ok("Menor vinculado correctamente");
+    }
+
     /**
      * Elimina el perfil de un menor.
      *

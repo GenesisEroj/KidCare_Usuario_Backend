@@ -3,6 +3,7 @@ package com.kidcare.usuario_service.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * Entidad JPA que representa a un usuario del sistema.
@@ -58,7 +59,7 @@ public class Usuario {
     @Column(name = "tokenRecuperacion")
     private String tokenRecuperacion;
 
-    // Fecha de expiración del token de recuperación
+    // Fecha y hora de expiración del token de recuperación (30 minutos)
     @Column(name = "fechaExpiracionToken")
-    private LocalDate fechaExpiracionToken;
+    private LocalDateTime fechaExpiracionToken;
 }
