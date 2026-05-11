@@ -11,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -138,7 +139,7 @@ public class AuthService {
 
         String token = UUID.randomUUID().toString();
         usuario.setTokenRecuperacion(token);
-        usuario.setFechaExpiracionToken(LocalDate.now().plusDays(1));
+        usuario.setFechaExpiracionToken(LocalDateTime.now().plusMinutes(30));
         usuarioRepository.save(usuario);
 
         emailService.enviarCorreoRecuperacion(usuario.getEmail(), token);
@@ -157,7 +158,7 @@ public class AuthService {
         Usuario usuario = usuarioRepository.findByTokenRecuperacion(dto.getToken())
                 .orElseThrow(() -> new RuntimeException("Token inválido"));
 
-        if (usuario.getFechaExpiracionToken().isBefore(LocalDate.now())) {
+        if (usuario.getFechaExpiracionToken().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("El token ha expirado");
         }
 

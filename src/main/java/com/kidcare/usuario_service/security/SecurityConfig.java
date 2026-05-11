@@ -28,12 +28,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 // Configura las rutas públicas y protegidas
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()   // login, registro, recuperar, restablecer
+                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/password/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/invitaciones/completar").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/menores").hasAnyRole("TUTOR", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/menores/**").hasAnyRole("TUTOR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/menores/vincular/**").hasAnyRole("TUTOR", "ADMIN")
                         .requestMatchers("/api/delegados/**").hasAnyRole("TUTOR", "ADMIN")
+                        .requestMatchers("/api/invitaciones/**").hasAnyRole("TUTOR", "ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .headers(headers -> headers
                         .frameOptions(frame -> frame.sameOrigin()))

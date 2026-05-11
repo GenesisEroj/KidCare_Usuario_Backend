@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class EmailService {
 
-    @Autowired(required = false)
+    @Autowired
     private JavaMailSender mailSender;
 
     @Value("${spring.mail.username:}")
@@ -43,7 +43,7 @@ public class EmailService {
      * @param token        UUID de recuperación válido por 24 horas
      */
     public void enviarCorreoRecuperacion(String destinatario, String token) {
-        if (devMode || mailSender == null || remitente.isBlank()) {
+        if (devMode) {
             System.out.println("\n========================================");
             System.out.println("  [DEV] TOKEN DE RECUPERACIÓN");
             System.out.println("  Destinatario : " + destinatario);
@@ -68,6 +68,34 @@ public class EmailService {
             "Tu contraseña actual permanece sin cambios.\n\n" +
             "Equipo KidCare\n" +
             "Bitácora de salud pediátrica"
+        );
+        mailSender.send(mensaje);
+    }
+
+    public void enviarInvitacionDelegado(String destinatario, String token, Integer idMenor) {
+        if (devMode) {
+            System.out.println("\n========================================");
+            System.out.println("  [DEV] INVITACIÓN A DELEGADO");
+            System.out.println("  Destinatario : " + destinatario);
+            System.out.println("  Token        : " + token);
+            System.out.println("  Menor ID     : " + idMenor);
+            System.out.println("  (usa este token en POST /api/invitaciones/completar)");
+            System.out.println("========================================\n");
+            return;
+        }
+
+        SimpleMailMessage mensaje = new SimpleMailMessage();
+        mensaje.setFrom(remitente);
+        mensaje.setTo(destinatario);
+        mensaje.setSubject("KidCare — Has sido invitado como delegado");
+        mensaje.setText(
+            "Hola,\n\n" +
+            "Has sido invitado a acceder al perfil de salud de un menor en KidCare.\n\n" +
+            "Para completar tu registro, usa el siguiente token en la aplicación:\n\n" +
+            "    " + token + "\n\n" +
+            "Este enlace es válido por 48 horas.\n\n" +
+            "Si no esperabas esta invitación, ignora este correo.\n\n" +
+            "Equipo KidCare"
         );
         mailSender.send(mensaje);
     }
