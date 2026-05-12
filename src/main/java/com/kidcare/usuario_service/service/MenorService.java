@@ -55,6 +55,7 @@ public class MenorService {
         menor.setNombre(dto.getNombre());
         menor.setFechaNacimiento(dto.getFechaNacimiento());
         menor.setSexo(dto.getSexo());
+        menor.setEmoji(dto.getEmoji());
         menorRepository.save(menor);
 
         // Vincula el menor al tutor en la tabla pivot
@@ -118,6 +119,7 @@ public class MenorService {
         menor.setNombre(dto.getNombre());
         menor.setFechaNacimiento(dto.getFechaNacimiento());
         menor.setSexo(dto.getSexo());
+        menor.setEmoji(dto.getEmoji());
         menorRepository.save(menor);
 
         return mapToDTO(menor);
@@ -196,6 +198,7 @@ public class MenorService {
         dto.setNombre(menor.getNombre());
         dto.setFechaNacimiento(menor.getFechaNacimiento());
         dto.setSexo(menor.getSexo());
+        dto.setEmoji(menor.getEmoji());
         return dto;
     }
 }

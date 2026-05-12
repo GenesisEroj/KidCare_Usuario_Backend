@@ -32,4 +32,8 @@ public class Menor {
     // Sexo del menor
     @Column(name = "sexo", nullable = false)
     private String sexo;
+
+    // Emoji representativo del perfil del menor (opcional)
+    @Column(name = "emoji")
+    private String emoji;
 }

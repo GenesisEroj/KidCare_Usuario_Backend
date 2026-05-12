@@ -18,4 +18,7 @@ public class MenorResponseDTO {
 
     // Sexo del menor
     private String sexo;
+
+    // Emoji representativo (puede ser null)
+    private String emoji;
 }

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -34,27 +35,27 @@ public class AdminController {
 
     // CU016: Habilitar cuenta deshabilitada
     @PatchMapping("/usuarios/{id}/habilitar")
-    public ResponseEntity<String> habilitarCuenta(@PathVariable Integer id,
+    public ResponseEntity<Map<String, String>> habilitarCuenta(@PathVariable Integer id,
             Authentication authentication) {
         adminService.habilitarCuenta(id, obtenerIdAdmin(authentication));
-        return ResponseEntity.ok("Cuenta habilitada correctamente");
+        return ResponseEntity.ok(Map.of("mensaje", "Cuenta habilitada correctamente"));
     }
 
     // CU017: Deshabilitar cuenta activa
     @PatchMapping("/usuarios/{id}/deshabilitar")
-    public ResponseEntity<String> deshabilitarCuenta(@PathVariable Integer id,
+    public ResponseEntity<Map<String, String>> deshabilitarCuenta(@PathVariable Integer id,
             Authentication authentication) {
         adminService.deshabilitarCuenta(id, obtenerIdAdmin(authentication));
-        return ResponseEntity.ok("Cuenta deshabilitada correctamente");
+        return ResponseEntity.ok(Map.of("mensaje", "Cuenta deshabilitada correctamente"));
     }
 
     // CU018: Asignar nuevo rol a usuario
     @PatchMapping("/usuarios/{id}/rol")
-    public ResponseEntity<String> asignarRol(@PathVariable Integer id,
+    public ResponseEntity<Map<String, String>> asignarRol(@PathVariable Integer id,
             @Valid @RequestBody CambiarRolDTO dto,
             Authentication authentication) {
         adminService.asignarRol(id, dto.getIdRol(), obtenerIdAdmin(authentication));
-        return ResponseEntity.ok("Rol actualizado correctamente");
+        return ResponseEntity.ok(Map.of("mensaje", "Rol actualizado correctamente"));
     }
 
     // CU019: Consultar auditoría con filtros opcionales

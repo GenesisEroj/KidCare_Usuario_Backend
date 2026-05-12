@@ -20,4 +20,7 @@ public class MenorRequestDTO {
     // Sexo del menor
     @NotBlank(message = "El sexo es obligatorio")
     private String sexo;
+
+    // Emoji representativo (opcional)
+    private String emoji;
 }

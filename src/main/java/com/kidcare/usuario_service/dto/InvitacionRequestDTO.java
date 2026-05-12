@@ -14,4 +14,6 @@ public class InvitacionRequestDTO {
 
     @NotNull(message = "El id del menor es obligatorio")
     private Integer idMenor;
+
+    private String duracion;
 }
