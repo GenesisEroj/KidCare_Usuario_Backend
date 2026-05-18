@@ -21,4 +21,7 @@ public class MenorResponseDTO {
 
     // Emoji representativo (puede ser null)
     private String emoji;
+
+    // true si el usuario autenticado es delegado de este menor (no es el propietario)
+    private boolean esDelegado;
 }
