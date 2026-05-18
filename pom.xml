@@ -76,11 +76,7 @@
 			<version>0.12.6</version>
 			<scope>runtime</scope>
 		</dependency>	
-		<!-- Envío de correos electrónicos via Gmail SMTP -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-mail</artifactId>
-		</dependency>
+		<!-- Email via Brevo HTTP API (RestTemplate, sin SMTP) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
