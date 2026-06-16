@@ -84,9 +84,24 @@ public class MenorService {
         Usuario tutor = usuarioRepository.findByEmail(emailTutor)
                 .orElseThrow(() -> new RuntimeException("Tutor no encontrado"));
 
-        return usuarioMenorRepository.findByIdIdUsuario(tutor.getIdUsuario())
+        Integer tutorId = tutor.getIdUsuario();
+        return usuarioMenorRepository.findByIdIdUsuario(tutorId)
                 .stream()
-                .map(um -> mapToDTO(um.getMenor()))
+                .map(um -> {
+                    MenorResponseDTO dto = mapToDTO(um.getMenor());
+                    // Es delegado si hay otro usuario con rol TUTOR/ADMIN vinculado al mismo menor
+                    boolean esDelegado = usuarioMenorRepository
+                            .findByIdIdMenorAndIdIdUsuarioNot(um.getMenor().getIdMenor(), tutorId)
+                            .stream()
+                            .anyMatch(otro -> {
+                                Usuario otroUsuario = usuarioRepository.findById(otro.getId().getIdUsuario()).orElse(null);
+                                return otroUsuario != null &&
+                                       (otroUsuario.getRol().getNombre().equalsIgnoreCase("TUTOR") ||
+                                        otroUsuario.getRol().getNombre().equalsIgnoreCase("ADMIN"));
+                            });
+                    dto.setEsDelegado(esDelegado);
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 

@@ -42,9 +42,7 @@ public class InvitacionService {
         Usuario tutor = usuarioRepository.findByEmail(emailTutor)
                 .orElseThrow(() -> new RuntimeException("Tutor no encontrado"));
 
-        if (usuarioRepository.existsByEmail(dto.getEmailDelegado())) {
-            throw new RuntimeException("El correo ya está registrado. Si el usuario existe, usa vincular delegado.");
-        }
+        // Si el email ya existe, la invitación se usará para vincular (no para crear cuenta nueva)
 
         UsuarioMenorId pivotId = new UsuarioMenorId();
         pivotId.setIdUsuario(tutor.getIdUsuario());
@@ -87,32 +85,62 @@ public class InvitacionService {
             throw new RuntimeException("La invitación ha expirado. Solicita una nueva al tutor.");
         }
 
-        validarPassword(dto.getPassword());
-
-        Rol rolDelegado = rolRepository.findByNombre("DELEGADO")
-                .orElseThrow(() -> new RuntimeException("Rol DELEGADO no encontrado"));
-
-        Usuario delegado = new Usuario();
-        delegado.setNombreCompleto(dto.getNombreCompleto());
-        delegado.setEmail(invitacion.getEmailInvitado());
-        delegado.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
-        delegado.setRol(rolDelegado);
-        delegado.setActivo(true);
-        delegado.setFechaCreacion(LocalDate.now());
-        usuarioRepository.save(delegado);
-
         Menor menor = menorRepository.findById(invitacion.getIdMenor())
                 .orElseThrow(() -> new RuntimeException("Menor no encontrado"));
 
-        UsuarioMenorId pivotId = new UsuarioMenorId();
-        pivotId.setIdUsuario(delegado.getIdUsuario());
-        pivotId.setIdMenor(menor.getIdMenor());
+        // Ruta 2: usuario existente → vincular sin crear cuenta nueva
+        usuarioRepository.findByEmail(invitacion.getEmailInvitado()).ifPresentOrElse(
+            usuarioExistente -> {
+                UsuarioMenorId pivotId = new UsuarioMenorId();
+                pivotId.setIdUsuario(usuarioExistente.getIdUsuario());
+                pivotId.setIdMenor(menor.getIdMenor());
 
-        UsuarioMenor usuarioMenor = new UsuarioMenor();
-        usuarioMenor.setId(pivotId);
-        usuarioMenor.setUsuario(delegado);
-        usuarioMenor.setMenor(menor);
-        usuarioMenorRepository.save(usuarioMenor);
+                if (usuarioMenorRepository.existsById(pivotId)) {
+                    throw new RuntimeException("Ya tienes acceso a este menor");
+                }
+
+                // TUTOR conserva su rol; otros reciben DELEGADO
+                String rolActual = usuarioExistente.getRol().getNombre();
+                if (!rolActual.equalsIgnoreCase("TUTOR") && !rolActual.equalsIgnoreCase("ADMIN")) {
+                    Rol rolDelegado = rolRepository.findByNombre("DELEGADO")
+                            .orElseThrow(() -> new RuntimeException("Rol DELEGADO no encontrado"));
+                    usuarioExistente.setRol(rolDelegado);
+                    usuarioRepository.save(usuarioExistente);
+                }
+
+                UsuarioMenor link = new UsuarioMenor();
+                link.setId(pivotId);
+                link.setUsuario(usuarioExistente);
+                link.setMenor(menor);
+                usuarioMenorRepository.save(link);
+            },
+            // Ruta 1: nuevo usuario → crear cuenta con rol DELEGADO
+            () -> {
+                validarPassword(dto.getPassword());
+
+                Rol rolDelegado = rolRepository.findByNombre("DELEGADO")
+                        .orElseThrow(() -> new RuntimeException("Rol DELEGADO no encontrado"));
+
+                Usuario nuevo = new Usuario();
+                nuevo.setNombreCompleto(dto.getNombreCompleto());
+                nuevo.setEmail(invitacion.getEmailInvitado());
+                nuevo.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+                nuevo.setRol(rolDelegado);
+                nuevo.setActivo(true);
+                nuevo.setFechaCreacion(LocalDate.now());
+                usuarioRepository.save(nuevo);
+
+                UsuarioMenorId pivotId = new UsuarioMenorId();
+                pivotId.setIdUsuario(nuevo.getIdUsuario());
+                pivotId.setIdMenor(menor.getIdMenor());
+
+                UsuarioMenor link = new UsuarioMenor();
+                link.setId(pivotId);
+                link.setUsuario(nuevo);
+                link.setMenor(menor);
+                usuarioMenorRepository.save(link);
+            }
+        );
 
         invitacion.setUtilizado(true);
         invitacionRepository.save(invitacion);
