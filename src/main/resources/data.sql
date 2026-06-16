@@ -30,3 +30,16 @@ INSERT IGNORE INTO ROL_PERMISO (id_rol, id_permiso)
 SELECT r.id_rol, p.id_permiso FROM ROL r, PERMISO p
 WHERE r.nombre = 'DELEGADO'
   AND p.nombre_permiso IN ('VER_HISTORIAL','USAR_CHATBOT');
+
+-- ============================================================
+-- USUARIO ADMINISTRADOR POR DEFECTO (para evaluación)
+-- Email:      admin@kidcare.cl
+-- Contraseña: Admin@2024!
+-- ============================================================
+INSERT INTO USUARIO (nombre_completo, email, password_hash, id_rol, activo, fecha_creacion)
+SELECT 'Administrador KidCare', 'admin@kidcare.cl',
+       '$2a$10$5hosKANT9lfxX/Rkm3X6dORed/BoBaWD/fY4Ay7yNrEeTclBcWfGG',
+       r.id_rol, true, CURDATE()
+FROM ROL r
+WHERE r.nombre = 'ADMIN'
+ON DUPLICATE KEY UPDATE nombre_completo = VALUES(nombre_completo);
