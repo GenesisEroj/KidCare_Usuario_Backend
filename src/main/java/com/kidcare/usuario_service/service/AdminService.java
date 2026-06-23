@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -68,12 +69,15 @@ public class AdminService {
         auditoriaRepository.deleteAll(auditoriaRepository.findByUsuarioIdUsuario(idUsuario));
         invitacionRepository.deleteAll(invitacionRepository.findByIdTutor(idUsuario));
         List<UsuarioMenor> vinculos = usuarioMenorRepository.findByIdIdUsuario(idUsuario);
+        List<Integer> menoresHuerfanos = new ArrayList<>();
         for (UsuarioMenor v : vinculos) {
             Integer idMenor = v.getMenor().getIdMenor();
             if (usuarioMenorRepository.findByIdIdMenorAndIdIdUsuarioNot(idMenor, idUsuario).isEmpty())
-                menorRepository.deleteById(idMenor);
+                menoresHuerfanos.add(idMenor);
         }
+        invitacionRepository.deleteAll(invitacionRepository.findByIdMenorIn(menoresHuerfanos));
         usuarioMenorRepository.deleteAll(vinculos);
+        menoresHuerfanos.forEach(menorRepository::deleteById);
         usuarioRepository.deleteById(idUsuario);
     }
 
