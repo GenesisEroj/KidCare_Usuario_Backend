@@ -1,5 +1,6 @@
 package com.kidcare.usuario_service.security;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,6 +49,10 @@ public class SecurityConfig {
                 // Sin estado de sesión, usamos JWT
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Devuelve 401 cuando el token es inválido o está ausente
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) ->
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED)))
                 // Agrega el filtro JWT antes del filtro de autenticación
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

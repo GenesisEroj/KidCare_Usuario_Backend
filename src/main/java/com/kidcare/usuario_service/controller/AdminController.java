@@ -3,12 +3,17 @@ package com.kidcare.usuario_service.controller;
 import com.kidcare.usuario_service.dto.AdminUsuarioResponseDTO;
 import com.kidcare.usuario_service.dto.AuditoriaResponseDTO;
 import com.kidcare.usuario_service.dto.CambiarRolDTO;
+import com.kidcare.usuario_service.dto.CrearUsuarioAdminDTO;
+import com.kidcare.usuario_service.dto.EditarUsuarioAdminDTO;
+import com.kidcare.usuario_service.dto.MenorRequestDTO;
+import com.kidcare.usuario_service.dto.MenorResponseDTO;
 import com.kidcare.usuario_service.model.Usuario;
 import com.kidcare.usuario_service.repository.UsuarioRepository;
 import com.kidcare.usuario_service.service.AdminService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -56,6 +61,70 @@ public class AdminController {
             Authentication authentication) {
         adminService.asignarRol(id, dto.getIdRol(), obtenerIdAdmin(authentication));
         return ResponseEntity.ok(Map.of("mensaje", "Rol actualizado correctamente"));
+    }
+
+    // EP3: Crear usuario desde el admin
+    @PostMapping("/usuarios")
+    public ResponseEntity<AdminUsuarioResponseDTO> crearUsuario(@Valid @RequestBody CrearUsuarioAdminDTO dto,
+            Authentication authentication) {
+        AdminUsuarioResponseDTO creado = adminService.crearUsuario(dto, obtenerIdAdmin(authentication));
+        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+    }
+
+    // EP3: Editar usuario desde el admin
+    @PutMapping("/usuarios/{id}")
+    public ResponseEntity<AdminUsuarioResponseDTO> editarUsuario(@PathVariable Integer id,
+            @Valid @RequestBody EditarUsuarioAdminDTO dto,
+            Authentication authentication) {
+        return ResponseEntity.ok(adminService.editarUsuario(id, dto, obtenerIdAdmin(authentication)));
+    }
+
+    // EP3: Eliminar usuario con cascade
+    @DeleteMapping("/usuarios/{id}")
+    public ResponseEntity<Map<String, String>> eliminarUsuario(@PathVariable Integer id,
+            Authentication authentication) {
+        adminService.eliminarUsuario(id, obtenerIdAdmin(authentication));
+        return ResponseEntity.ok(Map.of("mensaje", "Usuario eliminado correctamente"));
+    }
+
+    // EP3: Crear menor y vincularlo directamente a un usuario
+    @PostMapping("/usuarios/{idUsuario}/menores")
+    public ResponseEntity<MenorResponseDTO> crearMenorParaUsuario(@PathVariable Integer idUsuario,
+            @Valid @RequestBody MenorRequestDTO dto,
+            Authentication authentication) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(adminService.crearMenorParaUsuario(idUsuario, dto, obtenerIdAdmin(authentication)));
+    }
+
+    // EP3: Listar todos los menores del sistema
+    @GetMapping("/menores")
+    public ResponseEntity<List<MenorResponseDTO>> listarMenores() {
+        return ResponseEntity.ok(adminService.listarMenores());
+    }
+
+    // EP3: Editar menor desde el admin (sin restricción de propietario)
+    @PutMapping("/menores/{id}")
+    public ResponseEntity<MenorResponseDTO> editarMenor(@PathVariable Integer id,
+            @Valid @RequestBody MenorRequestDTO dto,
+            Authentication authentication) {
+        return ResponseEntity.ok(adminService.editarMenor(id, dto, obtenerIdAdmin(authentication)));
+    }
+
+    // EP3: Eliminar menor con cascade desde el admin
+    @DeleteMapping("/menores/{id}")
+    public ResponseEntity<Map<String, String>> eliminarMenor(@PathVariable Integer id,
+            Authentication authentication) {
+        adminService.eliminarMenor(id, obtenerIdAdmin(authentication));
+        return ResponseEntity.ok(Map.of("mensaje", "Menor eliminado correctamente"));
+    }
+
+    // EP3: Asociar usuario existente a un menor existente
+    @PostMapping("/menores/{idMenor}/vincular/{idUsuario}")
+    public ResponseEntity<Map<String, String>> asociarUsuarioMenor(@PathVariable Integer idMenor,
+            @PathVariable Integer idUsuario,
+            Authentication authentication) {
+        adminService.asociarUsuarioMenor(idMenor, idUsuario, obtenerIdAdmin(authentication));
+        return ResponseEntity.ok(Map.of("mensaje", "Usuario vinculado al menor correctamente"));
     }
 
     // CU019: Consultar auditoría con filtros opcionales
